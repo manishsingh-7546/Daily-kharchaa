@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>हिसाब-किताब - दैनिक खर्च प्रबंधन</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&display=swap');
+        body { font-family: 'Hind', sans-serif; background-color: #f1f5f9; }
+    </style>
+</head>
+<body class="p-3 md:p-6">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-5 rounded-2xl shadow-lg flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-wallet"></i> चार यार: खर्च शेयरिंग
+                </h1>
+                <p class="text-emerald-100 text-sm mt-1">मोहन, सुरेश, रमेश और राकेश का संयुक्त हिसाब-किताब</p>
+            </div>
+            <button onclick="shareOnWhatsApp()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-bold shadow flex items-center gap-2 transition">
+                <i class="fa-brands fa-whatsapp text-xl"></i> <span class="hidden sm:inline">WhatsApp पर शेयर करें</span>
+            </button>
+        </div>
+
+        <!-- Expense Entry Form -->
+        <div class="bg-white p-5 rounded-2xl shadow-md border border-gray-100">
+            <h2 id="formTitle" class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-emerald-600"></i> नया खर्च दर्ज करें
+            </h2>
+            
+            <form id="expenseForm" onsubmit="handleFormSubmit(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="hidden" id="editIndex" value="-1">
+
+                <!-- User Selector -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">किसने खर्च किया?</label>
+                    <select id="userName" required class="w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <option value="">नाम चुनें...</option>
+                        <option value="मोहन">मोहन</option>
+                        <option value="सुरेश">सुरेश</option>
+                        <option value="रमेश">रमेश</option>
+                        <option value="राकेश">राकेश</option>
+                    </select>
+                </div>
+
+                <!-- Date Picker -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">दिनांक (DD/MM/YYYY)</label>
+                    <input type="date" id="expenseDate" required class="w-full border border-gray-300 rounded-xl p-2 bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+
+                <!-- Expense Title -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">खर्च का विवरण</label>
+                    <input type="text" id="expenseDesc" placeholder="उदा. राशन, दूध, बिजली बिल" required class="w-full border border-gray-300 rounded-xl p-2 bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+
+                <!-- Amount -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">रकम (₹)</label>
+                    <input type="number" id="expenseAmount" min="1" step="any" placeholder="0.00" required class="w-full border border-gray-300 rounded-xl p-2 bg-gray-50 focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+
+                <!-- Submit / Cancel Button -->
+                <div class="md:col-span-4 flex gap-3 justify-end mt-2">
+                    <button type="button" id="cancelBtn" onclick="resetForm()" class="hidden bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2.5 rounded-xl font-semibold transition">
+                        रद्द करें
+                    </button>
+                    <button type="submit" id="submitBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i> खर्च सुरक्षित करें
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary & Balance Settlement Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Total Summary Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-gray-100 flex flex-col justify-between">
+                <h3 class="text-base font-bold text-gray-700 mb-3 border-b pb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-600"></i> कुल खर्च और प्रति व्यक्ति हिस्सा
+                </h3>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                        <p class="text-xs font-semibold text-emerald-700 uppercase">कुल खर्च</p>
+                        <p id="totalExpenseDisplay" class="text-2xl font-extrabold text-emerald-800 mt-1">₹0</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <p class="text-xs font-semibold text-blue-700 uppercase">प्रति व्यक्ति (1/4)</p>
+                        <p id="perPersonDisplay" class="text-2xl font-extrabold text-blue-800 mt-1">₹0</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-3 text-center">*कुल राशि को मोहन, सुरेश, रमेश और राकेश में 4 बराबर भागों में बाँटा गया है।</p>
+            </div>
+
+            <!-- Individual Share & Settlement -->
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-gray-100">
+                <h3 class="text-base font-bold text-gray-700 mb-3 border-b pb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-emerald-600"></i> किसने कितना खर्च किया & हिसाब
+                </h3>
+                <div id="usersSummaryList" class="space-y-2.5">
+                    <!-- Dynamic rendering of 4 users -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses List Table -->
+        <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+            <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-emerald-600"></i> सभी खर्चों की सूची
+                </h3>
+                <span id="recordCount" class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-semibold">0 रिकॉर्ड</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 text-xs uppercase font-bold border-b">
+                            <th class="p-3">तारीख</th>
+                            <th class="p-3">किसने दिया</th>
+                            <th class="p-3">विवरण</th>
+                            <th class="p-3">रकम</th>
+                            <th class="p-3 text-center">एक्शन</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesTableBody" class="divide-y divide-gray-100 text-sm">
+                        <!-- Expenses rows dynamically inserted -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        const USERS = ["मोहन", "सुरेश", "रमेश", "राकेश"];
+        let expenses = JSON.parse(localStorage.getItem('four_friends_expenses')) || [];
+
+        // Helper to format ISO Date (YYYY-MM-DD) to DD/MM/YYYY
+        function formatDateToDisplay(isoDateString) {
+            if (!isoDateString) return "";
+            const [year, month, day] = isoDateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        // Set today's date as default
+        document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+
+        function saveExpenses() {
+            localStorage.setItem('four_friends_expenses', JSON.stringify(expenses));
+            render();
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const editIndex = parseInt(document.getElementById('editIndex').value);
+            const user = document.getElementById('userName').value;
+            const date = document.getElementById('expenseDate').value;
+            const desc = document.getElementById('expenseDesc').value.trim();
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+
+            if (!user || !date || !desc || isNaN(amount)) {
+                alert("कृपया सभी जानकारी सही से भरें!");
+                return;
+            }
+
+            const expenseData = { user, date, desc, amount };
+
+            if (editIndex === -1) {
+                // New Expense
+                expenses.unshift(expenseData);
+            } else {
+                // Edit Expense
+                expenses[editIndex] = expenseData;
+            }
+
+            saveExpenses();
+            resetForm();
+        }
+
+        function editExpense(index) {
+            const exp = expenses[index];
+            document.getElementById('editIndex').value = index;
+            document.getElementById('userName').value = exp.user;
+            document.getElementById('expenseDate').value = exp.date;
+            document.getElementById('expenseDesc').value = exp.desc;
+            document.getElementById('expenseAmount').value = exp.amount;
+
+            // UI updates for Edit Mode
+            document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-amber-600"></i> खर्च एडिट करें';
+            document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> अपडेट करें';
+            document.getElementById('submitBtn').className = 'bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-md transition';
+            document.getElementById('cancelBtn').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteExpense(index) {
+            if (confirm("क्या आप वाकई इस खर्च को हटाना चाहते हैं?")) {
+                expenses.splice(index, 1);
+                saveExpenses();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('expenseForm').reset();
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+
+            document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-plus-circle text-emerald-600"></i> नया खर्च दर्ज करें';
+            document.getElementById('submitBtn').innerHTML = '<i class="fa-solid fa-check"></i> खर्च सुरक्षित करें';
+            document.getElementById('submitBtn').className = 'bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-md transition';
+            document.getElementById('cancelBtn').classList.add('hidden');
+        }
+
+        function render() {
+            const tbody = document.getElementById('expensesTableBody');
+            tbody.innerHTML = '';
+
+            let total = 0;
+            const userSpents = { "मोहन": 0, "सुरेश": 0, "रमेश": 0, "राकेश": 0 };
+
+            expenses.forEach((item, index) => {
+                total += item.amount;
+                if (userSpents[item.user] !== undefined) {
+                    userSpents[item.user] += item.amount;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 text-gray-700 font-medium whitespace-nowrap">${formatDateToDisplay(item.date)}</td>
+                    <td class="p-3"><span class="bg-gray-100 text-gray-800 font-semibold px-2.5 py-1 rounded-md text-xs border">${item.user}</span></td>
+                    <td class="p-3 text-gray-800">${item.desc}</td>
+                    <td class="p-3 font-bold text-gray-900">₹${item.amount.toFixed(2)}</td>
+                    <td class="p-3 text-center whitespace-nowrap">
+                        <button onclick="editExpense(${index})" class="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 mr-2" title="एडिट करें">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteExpense(${index})" class="text-red-600 hover:text-red-800 p-1.5 rounded hover:bg-red-50" title="हटाएं">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (expenses.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">अभी कोई खर्च दर्ज नहीं है। ऊपर फॉर्म से जोड़ें!</td></tr>`;
+            }
+
+            document.getElementById('recordCount').innerText = `${expenses.length} रिकॉर्ड`;
+            document.getElementById('totalExpenseDisplay').innerText = `₹${total.toFixed(2)}`;
+
+            const perPersonShare = total / 4;
+            document.getElementById('perPersonDisplay').innerText = `₹${perPersonShare.toFixed(2)}`;
+
+            // Render 4 Users Summary & Balance
+            const userSummaryContainer = document.getElementById('usersSummaryList');
+            userSummaryContainer.innerHTML = '';
+
+            USERS.forEach(name => {
+                const spent = userSpents[name] || 0;
+                const balance = spent - perPersonShare; 
+
+                let statusBadge = '';
+                if (balance > 0.01) {
+                    statusBadge = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-xs font-bold">+₹${balance.toFixed(2)} (पाना है)</span>`;
+                } else if (balance < -0.01) {
+                    statusBadge = `<span class="text-red-600 bg-red-100 px-2 py-0.5 rounded text-xs font-bold">-₹${Math.abs(balance).toFixed(2)} (देना है)</span>`;
+                } else {
+                    statusBadge = `<span class="text-gray-600 bg-gray-100 px-2 py-0.5 rounded text-xs font-bold">बराबर</span>`;
+                }
+
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-gray-50 p-2.5 rounded-xl border border-gray-200 text-sm";
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-circle text-gray-400 text-lg"></i>
+                        <span class="font-bold text-gray-800">${name}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-gray-500 text-xs">खर्च: ₹${spent.toFixed(2)}</span> | ${statusBadge}
+                    </div>
+                `;
+                userSummaryContainer.appendChild(div);
+            });
+        }
+
+        // WhatsApp Share Message Formatter
+        function shareOnWhatsApp() {
+            if (expenses.length === 0) {
+                alert("शेयर करने के लिए अभी कोई खर्च मौजूद नहीं है!");
+                return;
+            }
+
+            let total = 0;
+            const userSpents = { "मोहन": 0, "सुरेश": 0, "रमेश": 0, "राकेश": 0 };
+            expenses.forEach(item => {
+                total += item.amount;
+                userSpents[item.user] += item.amount;
+            });
+
+            const share = total / 4;
+
+            let msg = `📊 *कमरे/ग्रुप के खर्चों का हिसाब-किताब*\n`;
+            msg += `💰 *कुल खर्च:* ₹${total.toFixed(2)}\n`;
+            msg += `👥 *प्रति व्यक्ति हिस्सा (1/4):* ₹${share.toFixed(2)}\n`;
+            msg += `------------------------------\n`;
+            msg += `*किसने कितना खर्च किया व फाइनल स्थिति:*\n\n`;
+
+            USERS.forEach(name => {
+                const spent = userSpents[name];
+                const diff = spent - share;
+                let status = "";
+                if (diff > 0.01) {
+                    status = `👉 ₹${diff.toFixed(2)} *वापस मिलेंगे*`;
+                } else if (diff < -0.01) {
+                    status = `👉 ₹${Math.abs(diff).toFixed(2)} *जमा करने हैं*`;
+                } else {
+                    status = `👉 हिसाब बराबर है`;
+                }
+                msg += `🔹 *${name}:* खर्च किया ₹${spent.toFixed(2)} (${status})\n`;
+            });
+
+            msg += `------------------------------\n`;
+            msg += `📅 *हाल के खर्च:* \n`;
+            expenses.slice(0, 5).forEach(e => {
+                msg += `• ${formatDateToDisplay(e.date)} - ${e.user} (₹${e.amount}) : ${e.desc}\n`;
+            });
+            if (expenses.length > 5) {
+                msg += `...और ${expenses.length - 5} अन्य खर्च।\n`;
+            }
+
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            window.open(waUrl, '_blank');
+        }
+
+        // Initial Load
+        render();
+    </script>
+</body>
+</html>
